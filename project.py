@@ -75,20 +75,20 @@ ti_article_df_filtered = ti_article_df[ti_article_df['Article Title'].str.contai
 print(ti_article_df_filtered)
 
 # headlines
-exUrl = 'https://finance.yahoo.com/quote/NVAX?p=NVAX'
-driver.get(exUrl)
+# exUrl = 'https://finance.yahoo.com/quote/NVAX?p=NVAX'
+# driver.get(exUrl)
 
-headlines = driver.find_elements_by_xpath('//h3[@class="Mb(5px)"]/a[@class]')
+# headlines = driver.find_elements_by_xpath('//h3[@class="Mb(5px)"]/a[@class]')
 
-headlineList = []
-for x in headlines:
-    headlineList.append(x.text)
+# headlineList = []
+# for x in headlines:
+#     headlineList.append(x.text)
 
-headlineList
+# headlineList
 
 # regex for headlines with 'law firm', 'shareholders', 'attorneys', 'investigation', 'LLP'
-lawsuits = re.findall('(Investors)', str(headlineList))
-lawsuits
+# lawsuits = re.findall('(Investors)', str(headlineList))
+# lawsuits
 
 # we can run this daily or something and save a CSV just to have the tickers and their respective losses on hand to track performance.
 
