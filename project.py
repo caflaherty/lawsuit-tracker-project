@@ -42,11 +42,18 @@ for (a, b, c, x, y, z) in itertools.zip_longest(dayLosersTi, dayLosersNm, dayLos
 yahoo_data_frame=pd.DataFrame({'DayLosersTi': Day_Losers_Ti, 'Day Losers Name': Day_Losers_Nm, 'Price':Day_Loser_Pr, 'Change':Day_Losers_Ch, '%Change': Day_Losers_Pc, 'MC': Day_Losers_MC})
 
 # remove % from items and convert to a float. will help with filtering values later.
+yahoo_data_frame['Price'] = yahoo_data_frame['Price'].astype(float)
+yahoo_data_frame['Change'] = yahoo_data_frame['Change'].astype(float)
 yahoo_data_frame['%Change'] = yahoo_data_frame['%Change'].str.rstrip('%').astype('float')
 
 print(yahoo_data_frame)
 
+# only look at companies who have share price drop by more than 10% in a day.
 bigL = yahoo_data_frame[yahoo_data_frame['%Change'] <= -10]
+bigL.insert(0, 'Date', datetime.today().strftime('%Y-%m-%d'))
+print('Buying $1000 of each of the biggest losers')
+bigL['SharesBought'] = 1000 / bigL.Price
+bigL['SharesBought'].round(decimals=2)
 print(bigL)
 
 filename = datetime.now().strftime('losers %m-%d-%Y.csv')
