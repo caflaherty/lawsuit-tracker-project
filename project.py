@@ -8,6 +8,8 @@ from selenium.webdriver.common import keys
 from selenium.webdriver.common.keys import Keys
 import re
 import itertools
+from datetime import datetime
+import csv
 geckoPath = r'C:\Users\caleb\Documents\School\Grad\MSIS 5193\Libraries\geckodriver.exe'
 driver = webdriver.Firefox(executable_path=geckoPath)
 
@@ -40,9 +42,19 @@ for (a, b, c, x, y, z) in itertools.zip_longest(dayLosersTi, dayLosersNm, dayLos
 
 yahoo_data_frame=pd.DataFrame({'DayLosersTi': Day_Losers_Ti, 'Day Losers Name': Day_Losers_Nm, 'Price':Day_Loser_Pr, 'Change':Day_Losers_Ch, '%Change': Day_Losers_Pc, 'MC': Day_Losers_MC})
 
+# remove % from items and convert to a float. will help with filtering values later.
+yahoo_data_frame['%Change'] = yahoo_data_frame['%Change'].str.rstrip('%').astype('float')
+
 print(yahoo_data_frame)
 
-# Eliminate penny stocks (those with value under $5 [or at least those under $1])
+bigL = yahoo_data_frame[yahoo_data_frame['%Change'] <= -10]
+print(bigL)
+
+filename = datetime.now().strftime('losers %m-%d-%Y.csv')
+
+bigL.to_csv(filename)
+
+# Eliminate penny stocks (those with value under $5 [or at least those under $1]). may not be necessary but idk yet. 
 
 url_template ='https://finance.yahoo.com/quote/Ticker?p=Ticker'
 
@@ -73,6 +85,17 @@ ti_article_df= pd.DataFrame({'Ticker': ti_label_list, 'Article Title':headlineLi
 ti_article_df_filtered = ti_article_df[ti_article_df['Article Title'].str.contains("(Investors|Shareholders|Attorneys|Investigation|LLP|Law Firm)")]
 
 print(ti_article_df_filtered)
+
+# scrape a webpage for the daily price data.
+
+dailyPrUrl = 'https://finance.yahoo.com/quote/Ticker/history?p=Ticker'
+
+dailyPrcChange = []
+
+for x in Day_Losers_Ti:
+    searchTic = dailyPrUrl.replace('Ticker', x)
+    dailyPrcChange.append(searchTic)
+print(dailyPrcChange)
 
 # headlines
 # exUrl = 'https://finance.yahoo.com/quote/NVAX?p=NVAX'
