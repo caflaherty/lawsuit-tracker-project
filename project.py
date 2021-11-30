@@ -107,7 +107,7 @@ print(dailyPrcChange)
 twtrUrl = 'https://twitter.com/i/flow/login'
 driver.get(twtrUrl)
 
-twtrUser = driver.find_element_by_name('username')
+twtrUser = driver.find_element_by_xpath('//input[@class]')
 twtrUser.send_keys('caleb_flaherty' + Keys.ENTER)
 twtrPW = driver.find_element_by_name('password')
 twtrPW.send_keys('' + Keys.ENTER) # password is from a password generator, so it's unique. won't post on github.
