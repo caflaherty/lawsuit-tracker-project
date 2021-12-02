@@ -19,19 +19,13 @@ driver = webdriver.Firefox(executable_path=geckoPath)
 import numpy
 import nltk
 from nltk.stem import PorterStemmer
-from nltk import word_tokenize, pos_tag, ne_chunk
-from nltk.chunk import conlltags2tree, tree2conlltags
 import matplotlib.pyplot as plt
-import seaborn as sns
+from nltk.corpus import stopwords
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
-
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, plot_confusion_matrix 
 # all of them just to be safe
 
 # combine all CSVs into one
@@ -93,39 +87,82 @@ tickerCommentDf = tickerCommentDf.loc[:, ~tickerCommentDf.columns.str.contains('
 tickerCommentDf.head()
 tickerCommentDf.to_csv('Loser Comments.csv')
 
-multiComment = tickerCommentDf.set_index(['Ticker', 'Comment'])
-multiComment.head()
+commentDf = pd.read_csv('C:/Users/caleb/Documents/School/Grad/MSIS 5193/Project/CSVs/Loser Comments.csv')
 
-multiComment.to_csv('comments by company.csv')
+stop = stopwords.words('english')
+commentDf['Comment'] = commentDf['Comment'].apply(lambda x: ' '.join(x for x in x.split() if x not in stop))
 
+numPattern = '\\b[0-9]+\\b'
 
-# Navigate to twitter and search for the tickers
-twtrUrl = 'https://twitter.com/i/flow/login'
-driver.get(twtrUrl)
+commentDf['Comment'] = commentDf['Comment'].str.replace(numPattern,'')
 
-twtrUser = driver.find_element_by_xpath('//input[@class]')
-twtrUser.send_keys('caleb_flaherty' + Keys.ENTER)
-twtrPW = driver.find_element_by_name('password')
-twtrPW.send_keys('' + Keys.ENTER) # password is from a password generator, so it's unique. won't post on github.
+puncPattern = '[^\w\s]'
 
-twtrSrch = driver.find_element_by_xpath('//input[@class="r-30o5oe r-1niwhzg r-17gur6a r-1yadl64 r-deolkf r-homxoj r-poiln3 r-7cikom r-1ny4l3l r-xyw6el r-641cr4 r-1dz5y72 r-fdjqy7 r-13qz1uu"]')
-twtrSrch.send_keys('$SNAP' + Keys.ENTER) # testing before defining a function. 
+commentDf['Comment'] = commentDf['Comment'].str.replace(puncPattern,'')
 
-twtrBody = driver.find_elements_by_xpath('//div/div/div[@class="css-901oao r-1fmj7o5 r-37j5jr r-a023e6 r-16dba41 r-rjixqe r-bcqeeo r-bnwqim r-qvutc0"]')
+commentDf['Comment'] = commentDf['Comment'].apply(lambda x: ' '.join(x.lower() for x in x.split()))
 
-tweetList = []
-for z in twtrBody:
-    tweetList.append(z.text)
+ridNamesWords = ['novavax','zillow','solarwind', 'playtika','rollins','marathon','lifestance','snapchat','zillow group','lemonade','ginkgo','bioworks','bright health','paysafe','oscar', 'tuya','intelligent systems',
+                    'cassava','vipshop','firstcash','stoneco','shift','mirati','cronos','faraday','oatly','tg','oak street','theralink','lightspeed','chegg','vroom','cereval']
 
-# make a function to search all tickers in the dataframe
-def tweetScrape(ticker):
-    twtrSrch = driver.find_element_by_xpath('//input[@class="r-30o5oe r-1niwhzg r-17gur6a r-1yadl64 r-deolkf r-homxoj r-poiln3 r-7cikom r-1ny4l3l r-xyw6el r-641cr4 r-1dz5y72 r-fdjqy7 r-13qz1uu"]')
-    for x in loserDf['DayLosersTi']:
-        ticker = x
-        twtrSrch.send_keys(ticker + Keys.ENTER) # change 'ticker' to the tickers from our dataframe. fix for deliverable 2.
+commentDf['Comment'] = commentDf['Comment'].apply(lambda x: ' '.join(x for x in x.split() if x not in ridNamesWords))
 
+porstem = PorterStemmer()
+
+commentDf['Comment'] = commentDf['Comment'].apply(lambda x: ' '.join([porstem.stem(word) for word in x.split()]))
+
+vectorizer = CountVectorizer()
+tokenData = pd.DataFrame(vectorizer.fit_transform(commentDf['Comment']).toarray(), columns=vectorizer.get_feature_names())
+
+vectorizer = CountVectorizer(max_df=0.8, min_df=4, stop_words='english')
+docTermMatrix = vectorizer.fit_transform(commentDf['Comment'].values.astype('U'))
+docTermMatrix.shape
+
+LDA = LatentDirichletAllocation(n_components=4, random_state=36)
+LDA.fit(docTermMatrix)
+
+firstTopic = LDA.components_[0]
+topTopicWords = firstTopic.argsort()[-10:]
+
+for i in topTopicWords:
+    print(vectorizer.get_feature_names()[i])
+
+for i, topic in enumerate(LDA.components_):
+    print(f'Top 10 words for each topic #{i}: ')
+    print([vectorizer.get_feature_names()[i] for i in topic.argsort()[-10:]])
+    print('\n')
+
+# add a new column to the dataframe
+topicValues = LDA.transform(docTermMatrix)
+topicValues.shape
+commentDf['topic'] = topicValues.argmax(axis=1)
+commentDf.head()
+
+# Creating NMF groups.
+tfidfVect = TfidfVectorizer(max_df=0.8, min_df=4, stop_words='english')
+docTermMatrix2 = tfidfVect.fit_transform(commentDf['Comment'].values.astype('U'))
+
+nmf = NMF(n_components=4, random_state=48)
+nmf.fit(docTermMatrix2)
+
+firstNmfTopic = nmf.components_[0]
+topNmfWords = firstNmfTopic.argsort()[-10:]
+
+for i in topNmfWords:
+    print(tfidfVect.get_feature_names()[i])
+
+for i, topic in enumerate(nmf.components_):
+    print(f'Top 10 words for topic #{i}: ')
+    print([tfidfVect.get_feature_names()[i] for i in topic.argsort()[-10:]])
+    print('\n')
+
+# add a new column to the dataframe
+topicValues2 = nmf.transform(docTermMatrix2)
+commentDf['topics2'] = topicValues2.argmax(axis=1)
+commentDf.head()
+
+commentDf.columns
+
+commentDf.to_csv('groupedComments.csv')
 
 driver.quit()
-
-# scrape x many tweets from around the day the stock fell the most. Use this for sentiment analysis. 
-# scrape yahoo finance historical page for price movement from the day the stock ended up on the list. 
