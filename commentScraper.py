@@ -86,12 +86,12 @@ tickerCommentDf = pd.DataFrame({'Ticker':commentTicker, 'Comment':commentList})
 
 tickerCommentDf.head()
 
-tickerCommentDf.to_csv('Loser Comments.csv')
-
 # start sentiment analysis of Yahoo comments. ###########################################################################################################
 tickerCommentDf = pd.read_csv('C:/Users/caleb/Documents/School/Grad/MSIS 5193/Loser Comments.csv')
 tickerCommentDf['Ticker'] = tickerCommentDf['Ticker'].str.replace("[\[\]\"']", "")
+tickerCommentDf = tickerCommentDf.loc[:, ~tickerCommentDf.columns.str.contains('^Unnamed')]
 tickerCommentDf.head()
+tickerCommentDf.to_csv('Loser Comments.csv')
 
 multiComment = tickerCommentDf.set_index(['Ticker', 'Comment'])
 multiComment.head()
