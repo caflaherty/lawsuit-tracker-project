@@ -26,6 +26,9 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
+
+from nltk import word_tokenize, pos_tag, ne_chunk
+from nltk.chunk import conlltags2tree, tree2conlltags
 # all of them just to be safe
 
 # combine all CSVs into one
@@ -81,7 +84,7 @@ tickerCommentDf = pd.DataFrame({'Ticker':commentTicker, 'Comment':commentList})
 tickerCommentDf.head()
 
 # start sentiment analysis of Yahoo comments. ###########################################################################################################
-tickerCommentDf = pd.read_csv('C:/Users/caleb/Documents/School/Grad/MSIS 5193/Loser Comments.csv')
+tickerCommentDf = pd.read_csv('C:/Users/caleb/Documents/School/Grad/MSIS 5193/Project/CSVs/Loser Comments.csv')
 tickerCommentDf['Ticker'] = tickerCommentDf['Ticker'].str.replace("[\[\]\"']", "")
 tickerCommentDf = tickerCommentDf.loc[:, ~tickerCommentDf.columns.str.contains('^Unnamed')]
 tickerCommentDf.head()
@@ -161,8 +164,29 @@ topicValues2 = nmf.transform(docTermMatrix2)
 commentDf['topics2'] = topicValues2.argmax(axis=1)
 commentDf.head()
 
-commentDf.columns
+commentDf.head()
 
 commentDf.to_csv('groupedComments.csv')
 
+############ Sentiment Analysis ############
+features = tickerCommentDf['Comment']
+
+vectorizer = TfidfVectorizer(max_features=250, min_df=7, max_df=0.8, stop_words=stop)
+
+processed_features = vectorizer.fit_transform(features).toarray()
+
+############ Named Entity Recognition ############
+ogComments = pd.read_csv('C:/Users/caleb/Documents/School/Grad/MSIS 5193/Project/CSVs/Loser Comments.csv')
+
+# df.groupby(['name', 'month'], as_index = False).agg({'text': ' '.join})
+combinedComments = ogComments.groupby(['Ticker'], as_index = False).agg({'Comment':' '.join})
+combinedComments.to_csv('longcomment.csv')
+
+combinedComments['tokenComments'] = combinedComments.apply(lambda row: nltk.word_tokenize(row['Comment']), axis=1)
+
+combinedComments
+
+combinedComments['results'] = combinedComments.tokenComments.apply(lambda x: nltk.ne_chunk(pos_tag(word_tokenize(x))))
+
 driver.quit()
+
